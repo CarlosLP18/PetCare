@@ -32,14 +32,14 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const filteredCampaigns = campaigns.filter((campaign) => {
-    const matchesSearch = 
-      campaign.petName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      campaign.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      campaign.petType.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesUrgency = filterUrgency === 'all' || campaign.urgency === filterUrgency
-    
-    return matchesSearch && matchesUrgency
+    const term = searchTerm.toLowerCase()
+
+    const matchesSearch =
+      campaign.pet_name?.toLowerCase().includes(term) ||
+      campaign.title?.toLowerCase().includes(term) ||
+      campaign.pet_species?.toLowerCase().includes(term)
+
+    return matchesSearch
   })
 
   const handleDonate = (campaign) => {
