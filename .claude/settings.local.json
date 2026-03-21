@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(~/.local/bin/uv sync:*)",
+      "Bash(~/.local/bin/uv run:*)"
+    ]
+  }
+}
