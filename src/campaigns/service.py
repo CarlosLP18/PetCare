@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import BackgroundTasks
 from supabase import AsyncClient
 
+from src.ai.council.orchestrator import run_council
 from src.campaigns.exceptions import (
     CampaignForbiddenError,
     CampaignNotEditableError,
@@ -23,6 +24,7 @@ from src.campaigns.models import (
     UpdateCampaignSchema,
 )
 from src.campaigns import repository
+from src.shared.database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +38,29 @@ MAX_CAMPAIGNS_PER_DAY = 3
 MAX_RESUBMIT_COUNT = 2
 
 
-async def _stub_ai_verification(campaign_id: UUID) -> None:
-    """Stub para el AI Verifier — la implementación real va en el plan de IA."""
-    logger.info("AI verification triggered for campaign %s (stub)", campaign_id)
+async def _run_ai_pipeline(campaign_id: UUID) -> None:
+    """Send campaign to GenLayer Council (5 on-chain LLM validators)."""
+    db = await get_db()
+
+    campaign = await repository.get_by_id(db, campaign_id)
+    if campaign is None:
+        logger.error("AI pipeline: campaign %s not found", campaign_id)
+        return
+
+    await repository.update(
+        db, campaign_id, {"status": CampaignStatus.pending_council.value}
+    )
+
+    await run_council(
+        db=db,
+        campaign_id=campaign_id,
+        title=campaign.title,
+        pet_species=campaign.pet_species.value,
+        story=campaign.story,
+        diagnosis=campaign.diagnosis,
+        goal_amount=float(campaign.goal_amount),
+        vet_clinic=campaign.vet_clinic or "",
+    )
 
 
 async def create_campaign(
@@ -52,7 +74,7 @@ async def create_campaign(
         raise CampaignRateLimitError()
 
     campaign = await repository.create(db, owner_id, data)
-    background_tasks.add_task(_stub_ai_verification, campaign.id)
+    background_tasks.add_task(_run_ai_pipeline, campaign.id)
     return campaign
 
 
@@ -188,5 +210,5 @@ async def resubmit_campaign(
             "resubmit_count": campaign.resubmit_count + 1,
         },
     )
-    background_tasks.add_task(_stub_ai_verification, campaign_id)
+    background_tasks.add_task(_run_ai_pipeline, campaign_id)
     return updated

@@ -1,13 +1,10 @@
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
 from pydantic import BaseModel
 
-from src.shared.config import settings
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+# Demo user — auth disabled for demo purposes
+_DEMO_USER_ID = UUID("a03190f7-3aa7-4a68-8be3-a1128807017f")
+_DEMO_EMAIL = "test1@gmail.com"
 
 
 class UserClaims(BaseModel):
@@ -15,23 +12,5 @@ class UserClaims(BaseModel):
     email: str
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserClaims:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid or expired token",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(
-            token,
-            settings.supabase_anon_key,
-            algorithms=["HS256"],
-            options={"verify_aud": False},
-        )
-        user_id: str | None = payload.get("sub")
-        email: str | None = payload.get("email")
-        if user_id is None or email is None:
-            raise credentials_exception
-        return UserClaims(user_id=UUID(user_id), email=email)
-    except (JWTError, ValueError):
-        raise credentials_exception
+async def get_current_user() -> UserClaims:
+    return UserClaims(user_id=_DEMO_USER_ID, email=_DEMO_EMAIL)
