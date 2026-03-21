@@ -1,0 +1,147 @@
+import { useState } from 'react'
+import {
+  Box,
+  Container,
+  Heading,
+  Text,
+  Input,
+  Button,
+  SimpleGrid,
+  Flex,
+  VStack,
+} from '@chakra-ui/react'
+import Introduction from '../components/Introduction'
+import Stats from '../components/Stats'
+import CampaignCard from '../components/CampaignCard'
+import DonationModal from '../components/DonationModal'
+import { campaigns } from '../data/campaigns'
+
+function SearchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="8"/>
+      <path d="m21 21-4.35-4.35"/>
+    </svg>
+  )
+}
+
+export default function App() {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterUrgency, setFilterUrgency] = useState('all')
+  const [selectedCampaign, setSelectedCampaign] = useState(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const filteredCampaigns = campaigns.filter((campaign) => {
+    const matchesSearch = 
+      campaign.petName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      campaign.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      campaign.petType.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesUrgency = filterUrgency === 'all' || campaign.urgency === filterUrgency
+    
+    return matchesSearch && matchesUrgency
+  })
+
+  const handleDonate = (campaign) => {
+    setSelectedCampaign(campaign)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedCampaign(null)
+  }
+
+  return (
+    <Box minH="100vh" bg="gray.50">
+      <Introduction />
+      <Stats />
+      
+      <Box py={16}>
+        <Container maxW="1200px">
+          <VStack gap={8} align="stretch">
+            <Box textAlign="center">
+              <Heading size="xl" color="gray.800" mb={3}>
+                Active Campaigns
+              </Heading>
+              <Text color="gray.600" maxW="600px" mx="auto">
+                Browse campaigns from verified pet owners and shelters. 
+                Every donation helps provide critical medical supplies to pets in need.
+              </Text>
+            </Box>
+
+            <Flex 
+              direction={{ base: 'column', md: 'row' }} 
+              gap={4} 
+              justify="center"
+              align={{ base: 'stretch', md: 'center' }}
+            >
+              <Box position="relative" w={{ base: 'full', md: '300px' }}>
+                <Box position="absolute" left={3} top="50%" transform="translateY(-50%)" color="gray.400">
+                  <SearchIcon />
+                </Box>
+                <Input
+                  placeholder="Search by pet name or type..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  pl={10}
+                  bg="white"
+                />
+              </Box>
+              
+              <Flex gap={2} flexWrap="wrap" justify={{ base: 'start', md: 'center' }}>
+                {['all', 'critical', 'high', 'medium'].map((urgency) => (
+                  <Button
+                    key={urgency}
+                    variant={filterUrgency === urgency ? 'solid' : 'outline'}
+                    colorPalette="teal"
+                    size="sm"
+                    onClick={() => setFilterUrgency(urgency)}
+                    textTransform="capitalize"
+                  >
+                    {urgency === 'all' ? 'All Campaigns' : urgency}
+                  </Button>
+                ))}
+              </Flex>
+            </Flex>
+
+            {filteredCampaigns.length > 0 ? (
+              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={6}>
+                {filteredCampaigns.map((campaign) => (
+                  <CampaignCard 
+                    key={campaign.id} 
+                    campaign={campaign} 
+                    onDonate={handleDonate}
+                  />
+                ))}
+              </SimpleGrid>
+            ) : (
+              <Box textAlign="center" py={12}>
+                <Text color="gray.500" fontSize="lg">
+                  No campaigns found matching your search.
+                </Text>
+                <Button 
+                  mt={4} 
+                  colorPalette="teal" 
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm('')
+                    setFilterUrgency('all')
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </Box>
+            )}
+          </VStack>
+        </Container>
+      </Box>
+
+      <DonationModal
+        campaign={selectedCampaign}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
+    </Box>
+  )
+}
