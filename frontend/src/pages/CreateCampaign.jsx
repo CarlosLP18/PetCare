@@ -11,6 +11,7 @@ import {
   NativeSelect
 } from "@chakra-ui/react"
 import { Link as RouterLink } from 'react-router-dom'
+import { createCampaign } from "../api/campaigns"
 
 const CreateCampaign = () => {
   const [formData, setFormData] = useState({
@@ -37,27 +38,34 @@ const CreateCampaign = () => {
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
-    const payload = {
-      title: formData.title.trim(),
-      pet_name: formData.pet_name.trim(),
-      pet_species: formData.pet_species,
-      pet_breed: formData.pet_breed.trim() || null,
-      pet_age_years:
-        formData.pet_age_years === "" ? null : Number(formData.pet_age_years),
-      diagnosis: formData.diagnosis.trim(),
-      vet_name: formData.vet_name.trim() || null,
-      vet_clinic: formData.vet_clinic.trim() || null,
-      story: formData.story.trim(),
-      goal_amount: Number(formData.goal_amount),
-      deadline: formData.deadline,
-      images: formData.images.trim() || null,
-      medical_documents: formData.medical_documents.trim() || null,
-    }
+    try {
+      const payload = {
+        title: formData.title.trim(),
+        pet_name: formData.pet_name.trim(),
+        pet_species: formData.pet_species,
+        pet_breed: formData.pet_breed.trim() || null,
+        pet_age_years:
+          formData.pet_age_years === "" ? null : Number(formData.pet_age_years),
+        diagnosis: formData.diagnosis.trim(),
+        vet_name: formData.vet_name.trim() || null,
+        vet_clinic: formData.vet_clinic.trim() || null,
+        story: formData.story.trim(),
+        goal_amount: Number(formData.goal_amount),
+        deadline: formData.deadline,
+        images: formData.images.trim() || null,
+        medical_documents: formData.medical_documents.trim() || null,
+      }
 
-    console.log("Paylod to send", payload)
+      const response = await createCampaign(payload)
+
+      console.log("Created:", response)
+    } catch (error) {
+      console.error(error)
+      alert("Error creating campaign")
+    }
   }
 
   return (
