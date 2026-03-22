@@ -32,18 +32,19 @@ export default function Home() {
   const [selectedCampaign, setSelectedCampaign] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  useEffect(() => {
-    const loadCampaigns = async () => {
-      try {
-        const data = await getCampaigns()
-        setCampaigns(data)
-      } catch (error) {
-        console.error('Error loading campaigns:', error)
-      } finally {
-        setLoading(false)
-      }
+  const loadCampaigns = async () => {
+    try {
+      setLoading(true)
+      const data = await getCampaigns()
+      setCampaigns(data)
+    } catch (error) {
+      console.error("Error loading campaigns:", error)
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     loadCampaigns()
   }, [])
 
@@ -73,7 +74,7 @@ export default function Home() {
       <Introduction />
       <Stats />
 
-      <Box py={16} Browse Campaigns>
+      <Box py={16} id="campaigns">
         <Container maxW="1200px">
           <VStack gap={8} align="stretch">
             <Box textAlign="center">
@@ -151,6 +152,7 @@ export default function Home() {
         campaign={selectedCampaign}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
+        onDonationSuccess={loadCampaigns}
       />
     </Box>
   )

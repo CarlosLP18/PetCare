@@ -2,7 +2,7 @@ const BASE_URL = "https://petcareback-ketp.onrender.com"
 
 export const getCampaigns = async () => {
   const response = await fetch(`${BASE_URL}/campaigns`)
-  
+
   if (!response.ok) {
     const errorText = await response.text()
     throw new Error(errorText || "Error fetching campaigns")
@@ -34,13 +34,8 @@ export const getCampaingsbyId = async (id) => {
   return response.json()
 }
 
-export const getCampaignAIReview = async (campaignId, token) => {
-  const response = await fetch(`${BASE_URL}/campaigns/${campaignId}/ai-review`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
+export const getCampaignAIReview = async (campaignId) => {
+  const response = await fetch(`${BASE_URL}/campaigns/${campaignId}/ai-review`)
 
   if (!response.ok) {
     const errorText = await response.text()

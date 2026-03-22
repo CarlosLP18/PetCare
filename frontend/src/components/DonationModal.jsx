@@ -10,8 +10,9 @@ import {
   VStack,
   Badge,
   Progress,
-  CloseButton,
+  Textarea,
 } from "@chakra-ui/react"
+import { donateToCampaign } from "../api/campaigns"
 
 function HeartIcon() {
   return (
@@ -35,36 +36,77 @@ const speciesLabels = {
   dog: "Dog",
   cat: "Cat",
   bird: "Bird",
-  bunny: "Bunny",
+  rabbit: "Rabbit",
   reptile: "Reptile",
   other: "Other",
 }
 
-export default function DonationModal({ campaign, isOpen, onClose }) {
+export default function DonationModal({
+  campaign,
+  isOpen,
+  onClose,
+  onDonationSuccess,
+}) {
   const [selectedAmount, setSelectedAmount] = useState(25)
   const [customAmount, setCustomAmount] = useState("")
   const [isCustom, setIsCustom] = useState(false)
+  const [message, setMessage] = useState("")
+  const [isAnonymous, setIsAnonymous] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [donated, setDonated] = useState(false)
+  const [error, setError] = useState("")
 
   if (!isOpen || !campaign) return null
 
   const goalAmount = Number(campaign.goal_amount) || 0
-  const raisedAmount = Number(campaign.raised_amount) || 0
+  const raisedAmount = Number(campaign.total_raised || 0)
   const progress = goalAmount > 0 ? (raisedAmount / goalAmount) * 100 : 0
   const finalAmount = isCustom ? Number(customAmount) || 0 : selectedAmount
 
-  const handleDonate = () => {
-    if (finalAmount > 0) {
-      setDonated(true)
-    }
-  }
-
-  const handleClose = () => {
-    setDonated(false)
+  const resetModalState = () => {
     setSelectedAmount(25)
     setCustomAmount("")
     setIsCustom(false)
+    setMessage("")
+    setIsAnonymous(false)
+    setLoading(false)
+    setDonated(false)
+    setError("")
+  }
+
+  const handleClose = () => {
+    resetModalState()
     onClose?.()
+  }
+
+  const handleDonate = async () => {
+    if (finalAmount < 1) {
+      setError("The minimum donation amount is $1.")
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError("")
+
+      const payload = {
+        amount: finalAmount,
+        message: message.trim() || null,
+        is_anonymous: isAnonymous,
+      }
+
+      const response = await donateToCampaign(campaign.id, payload)
+
+      console.log("Donation created:", response)
+
+      setDonated(true)
+      onDonationSuccess?.()
+    } catch (err) {
+      console.error(err)
+      setError(err.message || "Error processing donation")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -99,11 +141,8 @@ export default function DonationModal({ campaign, isOpen, onClose }) {
             </Heading>
 
             <Text color="gray.600">
-              Your donation of ${finalAmount} will help {campaign.pet_name} get the medical care they need.
-            </Text>
-
-            <Text fontSize="sm" color="gray.500">
-              A confirmation email has been sent to your inbox.
+              Your donation of ${finalAmount} was successfully registered for{" "}
+              {campaign.pet_name}.
             </Text>
 
             <Button colorPalette="teal" onClick={handleClose} mt={4}>
@@ -114,19 +153,11 @@ export default function DonationModal({ campaign, isOpen, onClose }) {
           <>
             <Box position="relative">
               <Image
-                src={campaign.images || "/placeholder-pet.jpg"}
+                src={campaign.images?.[0] || "/placeholder-pet.jpg"}
                 alt={campaign.pet_name || "Pet campaign"}
                 h="180px"
                 w="full"
                 objectFit="cover"
-              />
-              <CloseButton
-                position="absolute"
-                top={3}
-                right={3}
-                bg="white"
-                borderRadius="full"
-                onClick={handleClose}
               />
             </Box>
 
@@ -137,7 +168,9 @@ export default function DonationModal({ campaign, isOpen, onClose }) {
                     Help {campaign.pet_name || "this pet"}
                   </Heading>
                   <Badge colorPalette="teal">
-                    {speciesLabels[campaign.pet_species] || campaign.pet_species || "Other"}
+                    {speciesLabels[campaign.pet_species] ||
+                      campaign.pet_species ||
+                      "Other"}
                   </Badge>
                 </Flex>
 
@@ -156,23 +189,17 @@ export default function DonationModal({ campaign, isOpen, onClose }) {
                   </Text>
                 </Flex>
 
-                <Progress.Root value={progress} size="sm" colorPalette="teal" borderRadius="full">
+                <Progress.Root
+                  value={progress}
+                  size="sm"
+                  colorPalette="teal"
+                  borderRadius="full"
+                >
                   <Progress.Track>
                     <Progress.Range />
                   </Progress.Track>
                 </Progress.Root>
               </Box>
-
-              {campaign.diagnosis && (
-                <Box>
-                  <Text fontWeight="semibold" mb={1} color="gray.700">
-                    Diagnosis
-                  </Text>
-                  <Text fontSize="sm" color="gray.600">
-                    {campaign.diagnosis}
-                  </Text>
-                </Box>
-              )}
 
               <Box>
                 <Text fontWeight="semibold" mb={3} color="gray.700">
@@ -183,7 +210,9 @@ export default function DonationModal({ campaign, isOpen, onClose }) {
                   {presetAmounts.map((amount) => (
                     <Button
                       key={amount}
-                      variant={!isCustom && selectedAmount === amount ? "solid" : "outline"}
+                      variant={
+                        !isCustom && selectedAmount === amount ? "solid" : "outline"
+                      }
                       colorPalette="teal"
                       size="sm"
                       onClick={() => {
@@ -222,9 +251,48 @@ export default function DonationModal({ campaign, isOpen, onClose }) {
                 </Box>
               )}
 
+              <Box>
+                <Text fontSize="sm" color="gray.600" mb={2}>
+                  Optional message
+                </Text>
+                <Textarea
+                  placeholder="Write a support message..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                />
+              </Box>
+
+              <Box>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <input
+                    type="checkbox"
+                    checked={isAnonymous}
+                    onChange={(e) => setIsAnonymous(e.target.checked)}
+                  />
+                  <Text fontSize="sm" color="gray.700">
+                    Donate anonymously
+                  </Text>
+                </label>
+              </Box>
+
+              {error && (
+                <Box
+                  bg="red.50"
+                  borderWidth="1px"
+                  borderColor="red.200"
+                  p={3}
+                  borderRadius="lg"
+                >
+                  <Text fontSize="sm" color="red.600">
+                    {error}
+                  </Text>
+                </Box>
+              )}
+
               <Box bg="teal.50" p={4} borderRadius="lg">
                 <Text fontSize="sm" color="teal.800">
-                  Your ${finalAmount} donation will help cover this pet&apos;s treatment and medical care.
+                  Your ${finalAmount} donation will help cover this pet&apos;s
+                  treatment and medical care.
                 </Text>
               </Box>
 
@@ -233,16 +301,13 @@ export default function DonationModal({ campaign, isOpen, onClose }) {
                 size="lg"
                 w="full"
                 onClick={handleDonate}
-                disabled={finalAmount <= 0}
+                disabled={loading || finalAmount <= 0}
               >
                 <HeartIcon />
-                <Text ml={2}>Donate ${finalAmount}</Text>
+                <Text ml={2}>
+                  {loading ? "Processing..." : `Donate $${finalAmount}`}
+                </Text>
               </Button>
-
-              <Text fontSize="xs" color="gray.500" textAlign="center">
-                100% of your donation goes directly to {campaign.pet_name || "the pet"}&apos;s care.
-                All donations are tax-deductible.
-              </Text>
             </VStack>
           </>
         )}

@@ -49,6 +49,7 @@ export default function CampaignReviewModal({
   loading,
   reviewResult,
   error,
+  timedOut,
 }) {
   if (!isOpen) return null
 
@@ -61,7 +62,9 @@ export default function CampaignReviewModal({
       : null
 
   const isProcessing =
-    !error && (loading || !reviewResult || reviewResult.final_decision === null)
+    !error &&
+    !timedOut &&
+    (loading || !reviewResult || reviewResult.final_decision === null)
 
   return (
     <Box
@@ -100,8 +103,32 @@ export default function CampaignReviewModal({
             </VStack>
           )}
 
+          {!loading && timedOut && !error && (
+            <Box
+              p={4}
+              borderWidth="1px"
+              borderRadius="lg"
+              borderColor="orange.200"
+              bg="orange.50"
+            >
+              <Text color="orange.700" fontWeight="bold" mb={2}>
+                Review still processing
+              </Text>
+              <Text color="gray.700">
+                The AI agents did not return a final decision in time. Please
+                check again later.
+              </Text>
+            </Box>
+          )}
+
           {!isProcessing && error && (
-            <Box p={4} borderWidth="1px" borderRadius="lg" borderColor="red.200" bg="red.50">
+            <Box
+              p={4}
+              borderWidth="1px"
+              borderRadius="lg"
+              borderColor="red.200"
+              bg="red.50"
+            >
               <Text color="red.600" fontWeight="bold" mb={2}>
                 Review failed
               </Text>
@@ -109,7 +136,7 @@ export default function CampaignReviewModal({
             </Box>
           )}
 
-          {!isProcessing && !error && reviewResult && (
+          {!isProcessing && !error && !timedOut && reviewResult && (
             <>
               <Box p={4} borderWidth="1px" borderRadius="lg">
                 <Heading size="sm" mb={2}>

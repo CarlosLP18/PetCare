@@ -37,6 +37,7 @@ const CreateCampaign = () => {
   const [reviewLoading, setReviewLoading] = useState(false)
   const [reviewResult, setReviewResult] = useState(null)
   const [reviewError, setReviewError] = useState("")
+  const [reviewTimedOut, setReviewTimedOut] = useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -77,6 +78,7 @@ const CreateCampaign = () => {
       }
 
       setCreatedCampaign(created)
+      setReviewTimedOut(false)
       setIsReviewModalOpen(true)
       setReviewLoading(true)
       setReviewResult(null)
@@ -84,10 +86,7 @@ const CreateCampaign = () => {
       setFormData(initialForm)
 
       try {
-        const token = localStorage.getItem("token") // o el mecanismo real que usen
-        const review = await getCampaignAIReview(campaignId, token)
-
-        setReviewResult(review)
+        await pollCampaignAIReview(campaignId)
       } catch (reviewErr) {
         console.error(reviewErr)
         setReviewError(reviewErr.message || "Error fetching AI review")
@@ -98,6 +97,29 @@ const CreateCampaign = () => {
       console.error(error)
       alert(error.message || "Error creating campaign")
     }
+  }
+
+  const pollCampaignAIReview = async (campaignId) => {
+    const maxAttempts = 10
+    const delayMs = 3000
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const review = await getCampaignAIReview(campaignId)
+
+      setReviewResult(review)
+
+      if (review.final_decision !== null || review.fraud_vote === "reject") {
+        setReviewTimedOut(false)
+        return review
+      }
+
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+      }
+    }
+
+    setReviewTimedOut(true)
+    return null
   }
 
   return (
@@ -273,11 +295,13 @@ const CreateCampaign = () => {
           setCreatedCampaign(null)
           setReviewResult(null)
           setReviewError("")
+          setReviewTimedOut(false)
         }}
         campaign={createdCampaign}
         loading={reviewLoading}
         reviewResult={reviewResult}
         error={reviewError}
+        timedOut={reviewTimedOut}
       />
     </Container>
   )
