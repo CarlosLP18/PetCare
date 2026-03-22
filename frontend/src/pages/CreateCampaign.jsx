@@ -76,7 +76,7 @@ const CreateCampaign = () => {
 
   return (
     <Container maxW="3xl" py={10}>
-      <Button as={RouterLink} to="/" variant="ghost" mb={4}>← Volver</Button>
+      <Button as={RouterLink} to="/" variant="ghost" mb={4}>← Back</Button>
       
       <Heading mb={8} color="teal.600">New Aid Campaign</Heading>
       

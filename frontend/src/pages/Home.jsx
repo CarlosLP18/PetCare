@@ -73,7 +73,7 @@ export default function Home() {
       <Introduction />
       <Stats />
 
-      <Box py={16}>
+      <Box py={16} Browse Campaigns>
         <Container maxW="1200px">
           <VStack gap={8} align="stretch">
             <Box textAlign="center">

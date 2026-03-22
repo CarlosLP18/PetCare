@@ -44,9 +44,11 @@ export default function Header() {
           </Flex>
           
           <HStack gap={6} display={{ base: 'none', md: 'flex' }}>
-            <Text 
-              color="gray.600" 
-              cursor="pointer" 
+            <Text
+              as={RouterLink}
+              to="/#campaigns"
+              color="gray.600"
+              cursor="pointer"
               _hover={{ color: 'teal.500' }}
               fontWeight="medium"
             >
