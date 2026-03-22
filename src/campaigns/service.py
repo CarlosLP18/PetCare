@@ -34,7 +34,7 @@ _EDITABLE_STATUSES = {
     CampaignStatus.rejected_council,
 }
 
-MAX_CAMPAIGNS_PER_DAY = 3
+MAX_CAMPAIGNS_PER_DAY = 20
 MAX_RESUBMIT_COUNT = 2
 
 
@@ -69,10 +69,6 @@ async def create_campaign(
     data: CreateCampaignSchema,
     background_tasks: BackgroundTasks,
 ) -> Campaign:
-    count = await repository.count_today_by_owner(db, owner_id)
-    if count >= MAX_CAMPAIGNS_PER_DAY:
-        raise CampaignRateLimitError()
-
     campaign = await repository.create(db, owner_id, data)
     background_tasks.add_task(_run_ai_pipeline, campaign.id)
     return campaign

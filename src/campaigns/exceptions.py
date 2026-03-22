@@ -26,7 +26,7 @@ class CampaignNotEditableError(UnprocessableError):
 
 class CampaignRateLimitError(RateLimitError):
     def __init__(self) -> None:
-        super().__init__(detail="Maximum 3 campaigns per day allowed")
+        super().__init__(detail="Maximum 20 campaigns per day allowed")
 
 
 class ResubmitLimitReachedError(ConflictError):
