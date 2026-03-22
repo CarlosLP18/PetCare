@@ -34,7 +34,13 @@ export default function Header() {
     >
       <Container maxW="1200px" py={4}>
         <Flex justify="space-between" align="center">
-          <Flex align="center" gap={2}>
+          <Flex
+            as={RouterLink}
+            to="/"
+            align="center"
+            gap={2}
+            _hover={{ textDecoration: "none", opacity: 0.8 }}
+          >
             <Box color="teal.500">
               <PawIcon />
             </Box>
