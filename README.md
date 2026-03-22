@@ -1,8 +1,8 @@
-# HealMyPaw 🐾
+# HealMyPaw
 
-> Crowdfunding platform for pet medical treatments, governed by AI.
+> Crowdfunding platform for pet medical treatments, governed by AI on the blockchain.
 
-Users create campaigns with veterinary information. An **AI Verifier** analyzes credibility (score 0–1). If it passes the threshold, an **AI Council** of 3 specialized agents (Welfare, Finance, Fraud) decides whether the campaign gets published. Approved campaigns receive donations.
+Users create campaigns with veterinary information. An **AI Council** of 5 independent LLM validators evaluates each campaign on GenLayer's blockchain. The result is immutable and verifiable — nobody can forge an approval, not even us.
 
 ---
 
@@ -12,34 +12,34 @@ Users create campaigns with veterinary information. An **AI Verifier** analyzes 
 |-------|-----------|
 | Runtime | Python 3.12+ |
 | Framework | FastAPI 0.115+ |
-| Database | Supabase (Postgres 15) via `supabase-py` |
-| Auth | Supabase Auth (JWT) |
-| AI | Anthropic SDK (`claude-sonnet-4-6`) — multi-agent |
+| Database | Supabase (Postgres 15) |
+| Auth | Supabase Auth |
+| AI / Blockchain | GenLayer Intelligent Contract |
 | Validation | Pydantic v2 + pydantic-settings |
-| Testing | pytest + pytest-asyncio + httpx |
-| Linting | ruff + mypy (strict) |
-| Package manager | `uv` |
+| HTTP Client | httpx |
+| Package manager | uv |
 
 ---
 
-## AI Flow
+## How it works
 
 ```
 POST /campaigns
-  → AI Verifier → score >= 0.4?
-    NO → status = rejected_auto
-    YES → BackgroundTask: AI Council
-
-AI Council (asyncio.gather — 3 agents in parallel)
-  WelfareAgent + FinanceAgent + FraudAgent
-  → Orchestrator applies rules:
-      fraud_vote = reject → automatic VETO (definitive)
-      2/3 approve         → active
-      2/3 reject          → rejected_council
-  → updates campaign.status
+  ↓
+BackgroundTask: AI pipeline
+  ↓ status → pending_council
+  ↓
+GenLayer Contract: evaluate_campaign()
+  5 independent LLM validators run in parallel
+  Fraud veto is absolute — if fraud votes reject, final is always reject
+  2/3 approve → active
+  2/3 reject  → rejected_council
+  ↓
+Supabase: votes + decision persisted
+Campaign status updated
 ```
 
-> **Fraud Agent rule**: a `reject` vote is **absolute**. It overrides all other votes regardless of what Welfare and Finance decide.
+**Pitch**: every campaign is evaluated by 5 independent AI validators on the blockchain. The result is immutable and publicly verifiable.
 
 ---
 
@@ -47,19 +47,21 @@ AI Council (asyncio.gather — 3 agents in parallel)
 
 ```
 src/
-  campaigns/        # Campaign CRUD + AI trigger + updates
-  donations/        # Donations with anonymity support
-  users/            # User profiles
+  campaigns/     # Campaign CRUD, AI trigger, updates
+  donations/     # Donations with anonymity support
+  users/         # User profiles
   ai/
-    verifier/       # AI Verifier agent (score 0–1)
-    council/        # Welfare, Finance, Fraud agents + orchestrator
-  shared/           # Config, database, auth, exceptions
-tests/
+    council/     # Orchestrator — calls GenLayer, persists results
+  blockchain/    # GenLayer JSON-RPC client
+  shared/        # Config, database, auth, exceptions
+contracts/
+  campaign_council.py   # GenLayer Intelligent Contract
 main.py
 pyproject.toml
+schema.sql
 ```
 
-Architecture: **Screaming Architecture** — Router → Service → Repository, strict separation of concerns.
+Architecture: **Screaming Architecture** — Router → Service → Repository.
 
 ---
 
@@ -70,16 +72,13 @@ Architecture: **Screaming Architecture** — Router → Service → Repository, 
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/)
 - A [Supabase](https://supabase.com) project
-- An [Anthropic](https://console.anthropic.com) API key
+- Access to a GenLayer node with the contract deployed
 
 ### Installation
 
 ```bash
-# Clone the repo
 git clone https://github.com/your-username/healmypaw.git
 cd healmypaw
-
-# Install dependencies
 uv sync
 ```
 
@@ -89,20 +88,21 @@ uv sync
 cp .env.example .env
 ```
 
-Edit `.env` with your credentials:
+Edit `.env`:
 
 ```env
-SUPABASE_URL=https://xxxx.supabase.co
-SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
-ANTHROPIC_API_KEY=sk-ant-...
-APP_ENV=development
-CORS_ORIGINS=http://localhost:3000
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+
+GENLAYER_NODE_URL=https://...
+GENLAYER_CONTRACT_ADDRESS=0x...
+GENLAYER_SENDER_ADDRESS=0x...
 ```
 
 ### Database Setup
 
-Run the SQL schema in your Supabase project (Settings → SQL Editor). The full schema is in [`CLAUDE.md`](./CLAUDE.md#schema-supabase-postgres-15).
+Run `schema.sql` in your Supabase project via **Settings → SQL Editor**.
 
 ### Run
 
@@ -110,7 +110,7 @@ Run the SQL schema in your Supabase project (Settings → SQL Editor). The full 
 uv run fastapi dev main.py
 ```
 
-API docs available at **http://localhost:8000/docs**
+API docs: **http://localhost:8000/docs**
 
 ---
 
@@ -118,34 +118,34 @@ API docs available at **http://localhost:8000/docs**
 
 ### Users
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `GET` | `/users/me` | ✅ | Own profile |
-| `PATCH` | `/users/me` | ✅ | Update profile |
-| `GET` | `/users/{id}/campaigns` | ❌ | User's public campaigns |
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/users/me` | Own profile |
+| `PATCH` | `/users/me` | Update profile |
+| `GET` | `/users/{id}/campaigns` | User's public campaigns |
 
 ### Campaigns
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/campaigns` | ✅ | Create campaign + trigger AI Verifier |
-| `GET` | `/campaigns` | ❌ | List active campaigns (paginated, filterable) |
-| `GET` | `/campaigns/mine` | ✅ | Own campaigns (all statuses) |
-| `GET` | `/campaigns/{id}` | ❌ | Campaign detail |
-| `PATCH` | `/campaigns/{id}` | ✅ owner | Edit (only if pending/rejected) |
-| `DELETE` | `/campaigns/{id}` | ✅ owner | Soft delete |
-| `POST` | `/campaigns/{id}/updates` | ✅ owner | Post a progress update |
-| `GET` | `/campaigns/{id}/updates` | ❌ | View updates |
-| `GET` | `/campaigns/{id}/ai-review` | ✅ owner | View AI review result |
-| `POST` | `/campaigns/{id}/resubmit` | ✅ owner | Resubmit for re-verification (max 2x) |
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/campaigns` | Create campaign — triggers GenLayer Council |
+| `GET` | `/campaigns` | List active campaigns (paginated) |
+| `GET` | `/campaigns/mine` | Own campaigns (all statuses) |
+| `GET` | `/campaigns/{id}` | Campaign detail |
+| `PATCH` | `/campaigns/{id}` | Edit campaign (only if pending/rejected) |
+| `DELETE` | `/campaigns/{id}` | Soft delete |
+| `POST` | `/campaigns/{id}/updates` | Post a progress update |
+| `GET` | `/campaigns/{id}/updates` | View updates |
+| `GET` | `/campaigns/{id}/ai-review` | View GenLayer Council result |
+| `POST` | `/campaigns/{id}/resubmit` | Resubmit for re-evaluation (max 2x) |
 
 ### Donations
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/campaigns/{id}/donate` | ✅ | Donate to a campaign |
-| `GET` | `/campaigns/{id}/donations` | ❌ | Public donations (anonymity respected) |
-| `GET` | `/donations/mine` | ✅ | Own donations |
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/campaigns/{id}/donate` | Donate to a campaign |
+| `GET` | `/campaigns/{id}/donations` | Public donations (anonymity respected) |
+| `GET` | `/donations/mine` | Own donations |
 
 ---
 
@@ -153,40 +153,23 @@ API docs available at **http://localhost:8000/docs**
 
 ```
 pending_verification
-  ↓ score < 0.4          ↓ score ≥ 0.4
-rejected_auto       pending_council
-                          ↓ council votes
-                    ┌─────┴─────┐
-                  active    rejected_council
-                    ↓             ↓ resubmit (max 2x)
-            completed/expired  pending_verification
+  ↓
+pending_council
+  ↓ GenLayer Council
+  ├── approve → active → completed / expired
+  └── reject  → rejected_council → resubmit (max 2x) → pending_verification
 ```
 
 ---
 
 ## Business Rules
 
-- **Rate limit**: max 3 campaigns created per user per day
-- **Resubmit**: max 2 times per campaign
-- **Editing**: only campaigns in `pending_verification` or `rejected_*` status
-- **Fraud veto**: if `fraud_vote = reject`, the final decision is always `reject`
-- **Anonymity**: `GET /campaigns/{id}/donations` never exposes `donor_id` or name when `is_anonymous = true`
-- **Soft delete**: campaigns are never physically deleted
-
----
-
-## Development
-
-```bash
-# Linting
-uv run ruff check .
-
-# Type checking
-uv run mypy .
-
-# Tests
-uv run pytest
-```
+- Max 3 campaigns created per user per day
+- Max 2 resubmits per campaign
+- Campaigns are only editable in `pending_verification` or `rejected_*` status
+- Fraud veto is absolute — overrides all other votes
+- Donor anonymity is enforced at the API level
+- Campaigns are never physically deleted (soft delete)
 
 ---
 
