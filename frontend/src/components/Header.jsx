@@ -34,7 +34,13 @@ export default function Header() {
     >
       <Container maxW="1200px" py={4}>
         <Flex justify="space-between" align="center">
-          <Flex align="center" gap={2}>
+          <Flex
+            as={RouterLink}
+            to="/"
+            align="center"
+            gap={2}
+            _hover={{ textDecoration: "none", opacity: 0.8 }}
+          >
             <Box color="teal.500">
               <PawIcon />
             </Box>
@@ -44,9 +50,11 @@ export default function Header() {
           </Flex>
           
           <HStack gap={6} display={{ base: 'none', md: 'flex' }}>
-            <Text 
-              color="gray.600" 
-              cursor="pointer" 
+            <Text
+              as={RouterLink}
+              to="/#campaigns"
+              color="gray.600"
+              cursor="pointer"
               _hover={{ color: 'teal.500' }}
               fontWeight="medium"
             >

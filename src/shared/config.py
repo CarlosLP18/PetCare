@@ -6,7 +6,10 @@ class Settings(BaseSettings):
     supabase_anon_key: str
     supabase_service_role_key: str
     app_env: str = "development"
-    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "https://petcare-v7dy.onrender.com"
+    ]
 
     # GenLayer blockchain
     genlayer_node_url: str = "http://localhost:4000/api"

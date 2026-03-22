@@ -11,9 +11,11 @@ import {
   NativeSelect
 } from "@chakra-ui/react"
 import { Link as RouterLink } from 'react-router-dom'
+import CampaignReviewModal from "../components/CampaignReviewModal"
+import { createCampaign, getCampaignAIReview } from "../api/campaigns"
 
 const CreateCampaign = () => {
-  const [formData, setFormData] = useState({
+  const initialForm = {
     title: "",
     pet_name: "",
     pet_species: "",
@@ -27,7 +29,14 @@ const CreateCampaign = () => {
     deadline: "",
     images: "",
     medical_documents: "",
-  })
+  }
+  
+  const [formData, setFormData] = useState(initialForm)
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
+  const [createdCampaign, setCreatedCampaign] = useState(null)
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewResult, setReviewResult] = useState(null)
+  const [reviewError, setReviewError] = useState("")
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -37,32 +46,59 @@ const CreateCampaign = () => {
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
-    const payload = {
-      title: formData.title.trim(),
-      pet_name: formData.pet_name.trim(),
-      pet_species: formData.pet_species,
-      pet_breed: formData.pet_breed.trim() || null,
-      pet_age_years:
-        formData.pet_age_years === "" ? null : Number(formData.pet_age_years),
-      diagnosis: formData.diagnosis.trim(),
-      vet_name: formData.vet_name.trim() || null,
-      vet_clinic: formData.vet_clinic.trim() || null,
-      story: formData.story.trim(),
-      goal_amount: Number(formData.goal_amount),
-      deadline: formData.deadline,
-      images: formData.images.trim() || null,
-      medical_documents: formData.medical_documents.trim() || null,
-    }
+    try {
+      const payload = {
+        title: formData.title.trim(),
+        pet_name: formData.pet_name.trim(),
+        pet_species: formData.pet_species,
+        pet_breed: formData.pet_breed.trim() || null,
+        pet_age_years:
+          formData.pet_age_years === "" ? null : Number(formData.pet_age_years),
+        diagnosis: formData.diagnosis.trim(),
+        vet_name: formData.vet_name.trim() || null,
+        vet_clinic: formData.vet_clinic.trim() || null,
+        story: formData.story.trim(),
+        goal_amount: Number(formData.goal_amount),
+        deadline: formData.deadline,
+        images: formData.images.trim() ? [formData.images.trim()] : [],
+        medical_documents: formData.medical_documents.trim()
+          ? [formData.medical_documents.trim()]
+          : [],
+      }
 
-    console.log("Paylod to send", payload)
+      const created = await createCampaign(payload)
+
+      console.log("Created:", created)
+
+      setCreatedCampaign(created)
+      setIsReviewModalOpen(true)
+      setReviewLoading(true)
+      setReviewResult(null)
+      setReviewError("")
+      setFormData(initialForm)
+
+      try {
+        const review = await getCampaignAIReview(created.id)
+        console.log("AI Review:", review)
+        setReviewResult(review)
+      } catch (reviewErr) {
+        console.error(reviewErr)
+        setReviewError(reviewErr.message || "Error fetching AI review")
+      } finally {
+        setReviewLoading(false)
+      }
+    } catch (error) {
+      console.error(error)
+      alert(error.message || "Error creating campaign")
+    }
   }
 
   return (
     <Container maxW="3xl" py={10}>
-      <Button as={RouterLink} to="/" variant="ghost" mb={4}>← Volver</Button>
+      <Button as={RouterLink} to="/" variant="ghost" mb={4}>← Back</Button>
       
       <Heading mb={8} color="teal.600">New Aid Campaign</Heading>
       
@@ -92,7 +128,6 @@ const CreateCampaign = () => {
               <NativeSelect.Root>
                 <NativeSelect.Field
                   name="pet_species"
-                  defaultValue=""
                   value={formData.pet_species}
                   onChange={handleChange}
                 >
@@ -141,6 +176,7 @@ const CreateCampaign = () => {
               placeholder="What do you need to treat?"
               value={formData.diagnosis}
               onChange={handleChange}
+              minLength={50}
             />
           </Field.Root>
 
@@ -226,6 +262,19 @@ const CreateCampaign = () => {
           </Button>
         </Stack>
       </form>
+      <CampaignReviewModal
+        isOpen={isReviewModalOpen}
+        onClose={() => {
+          setIsReviewModalOpen(false)
+          setCreatedCampaign(null)
+          setReviewResult(null)
+          setReviewError("")
+        }}
+        campaign={createdCampaign}
+        loading={reviewLoading}
+        reviewResult={reviewResult}
+        error={reviewError}
+      />
     </Container>
   )
 }

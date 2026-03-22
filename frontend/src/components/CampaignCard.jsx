@@ -49,7 +49,7 @@ export default function CampaignCard({ campaign, onDonate }) {
     >
       <Box position="relative">
         <Image
-          src={campaign.images || "/placeholder-pet.jpg"}
+          src={campaign.images?.[0] || "/placeholder-pet.jpg"}
           alt={campaign.pet_name || "Pet campaign"}
           h="200px"
           w="full"
@@ -158,7 +158,7 @@ export default function CampaignCard({ campaign, onDonate }) {
           </Text>
         )}
 
-        {campaign.medical_documents && (
+        {campaign.medical_documents?.length > 0 && (
           <Text fontSize="xs" color="gray.500">
             Medical documents attached
           </Text>
