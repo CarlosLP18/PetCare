@@ -14,7 +14,7 @@ import { Link as RouterLink } from 'react-router-dom'
 import { createCampaign } from "../api/campaigns"
 
 const CreateCampaign = () => {
-  const [formData, setFormData] = useState({
+  const initialForm = {
     title: "",
     pet_name: "",
     pet_species: "",
@@ -28,7 +28,9 @@ const CreateCampaign = () => {
     deadline: "",
     images: "",
     medical_documents: "",
-  })
+  }
+  
+  const [formData, setFormData] = useState(initialForm)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -64,6 +66,8 @@ const CreateCampaign = () => {
       const response = await createCampaign(payload)
 
       console.log("Created:", response)
+      setFormData(initialForm)
+      alert("Campaign created successfully")
     } catch (error) {
       console.error(error)
       alert("Error creating campaign")
@@ -102,7 +106,6 @@ const CreateCampaign = () => {
               <NativeSelect.Root>
                 <NativeSelect.Field
                   name="pet_species"
-                  defaultValue=""
                   value={formData.pet_species}
                   onChange={handleChange}
                 >

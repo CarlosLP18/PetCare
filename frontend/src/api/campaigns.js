@@ -4,7 +4,11 @@ export const getCampaigns = async () => {
   const response = await fetch(`${BASE_URL}/campaigns`, {
     method: "GET",
   })
-  if (!response) throw new Error("Error to get all Campaings")
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(errorText || "Error fetching campaigns")
+  }
+
   return response.json()
 }
 
