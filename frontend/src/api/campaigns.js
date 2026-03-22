@@ -44,3 +44,20 @@ export const getCampaignAIReview = async (campaignId) => {
 
   return response.json()
 }
+
+export const donateToCampaign = async (id, data) => {
+  const response = await fetch(`${BASE_URL}/campaigns/${id}/donate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(errorText || "Error fetching AI review")
+  }
+
+  return response.json()
+}

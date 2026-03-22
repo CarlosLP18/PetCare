@@ -301,7 +301,7 @@ export default function DonationModal({
                 size="lg"
                 w="full"
                 onClick={handleDonate}
-                disabled={loading || finalAmount <= 0}
+                disabled={loading || finalAmount <= 1}
               >
                 <HeartIcon />
                 <Text ml={2}>
