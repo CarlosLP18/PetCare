@@ -55,8 +55,10 @@ const CreateCampaign = () => {
         story: formData.story.trim(),
         goal_amount: Number(formData.goal_amount),
         deadline: formData.deadline,
-        images: formData.images.trim() || null,
-        medical_documents: formData.medical_documents.trim() || null,
+        images: formData.images.trim() ? [formData.images.trim()] : [],
+        medical_documents: formData.medical_documents.trim()
+          ? [formData.medical_documents.trim()]
+          : [],
       }
 
       const response = await createCampaign(payload)
@@ -149,6 +151,7 @@ const CreateCampaign = () => {
               placeholder="What do you need to treat?"
               value={formData.diagnosis}
               onChange={handleChange}
+              minLength={50}
             />
           </Field.Root>
 
