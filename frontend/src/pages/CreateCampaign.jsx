@@ -71,7 +71,10 @@ const CreateCampaign = () => {
 
       const created = await createCampaign(payload)
 
-      console.log("Created:", created)
+      const campaignId = created?.id
+      if (!campaignId) {
+        throw new Error("Campaign created but no id was returned")
+      }
 
       setCreatedCampaign(created)
       setIsReviewModalOpen(true)
@@ -81,8 +84,9 @@ const CreateCampaign = () => {
       setFormData(initialForm)
 
       try {
-        const review = await getCampaignAIReview(created.id)
-        console.log("AI Review:", review)
+        const token = localStorage.getItem("token") // o el mecanismo real que usen
+        const review = await getCampaignAIReview(campaignId, token)
+
         setReviewResult(review)
       } catch (reviewErr) {
         console.error(reviewErr)
@@ -137,7 +141,7 @@ const CreateCampaign = () => {
                   <option value="dog">Dog</option>
                   <option value="cat">Cat</option>
                   <option value="bird">Bird</option>
-                  <option value="bunny">Bunny</option>
+                  <option value="rabbit">Rabbit</option>
                   <option value="reptile">Reptile</option>
                   <option value="other">Other</option>
                 </NativeSelect.Field>
