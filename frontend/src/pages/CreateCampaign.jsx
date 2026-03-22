@@ -11,7 +11,8 @@ import {
   NativeSelect
 } from "@chakra-ui/react"
 import { Link as RouterLink } from 'react-router-dom'
-import { createCampaign } from "../api/campaigns"
+import CampaignReviewModal from "../components/CampaignReviewModal"
+import { createCampaign, getCampaignAIReview } from "../api/campaigns"
 
 const CreateCampaign = () => {
   const initialForm = {
@@ -31,6 +32,11 @@ const CreateCampaign = () => {
   }
   
   const [formData, setFormData] = useState(initialForm)
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
+  const [createdCampaign, setCreatedCampaign] = useState(null)
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewResult, setReviewResult] = useState(null)
+  const [reviewError, setReviewError] = useState("")
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -63,14 +69,30 @@ const CreateCampaign = () => {
           : [],
       }
 
-      const response = await createCampaign(payload)
+      const created = await createCampaign(payload)
 
-      console.log("Created:", response)
+      console.log("Created:", created)
+
+      setCreatedCampaign(created)
+      setIsReviewModalOpen(true)
+      setReviewLoading(true)
+      setReviewResult(null)
+      setReviewError("")
       setFormData(initialForm)
-      alert("Campaign created successfully")
+
+      try {
+        const review = await getCampaignAIReview(created.id)
+        console.log("AI Review:", review)
+        setReviewResult(review)
+      } catch (reviewErr) {
+        console.error(reviewErr)
+        setReviewError(reviewErr.message || "Error fetching AI review")
+      } finally {
+        setReviewLoading(false)
+      }
     } catch (error) {
       console.error(error)
-      alert("Error creating campaign")
+      alert(error.message || "Error creating campaign")
     }
   }
 
@@ -240,6 +262,19 @@ const CreateCampaign = () => {
           </Button>
         </Stack>
       </form>
+      <CampaignReviewModal
+        isOpen={isReviewModalOpen}
+        onClose={() => {
+          setIsReviewModalOpen(false)
+          setCreatedCampaign(null)
+          setReviewResult(null)
+          setReviewError("")
+        }}
+        campaign={createdCampaign}
+        loading={reviewLoading}
+        reviewResult={reviewResult}
+        error={reviewError}
+      />
     </Container>
   )
 }

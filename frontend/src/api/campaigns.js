@@ -34,3 +34,14 @@ export const getCampaingsbyId = async (id) => {
   if (!response) throw new Error("Error to get Campaign nro {{id}} ")
   return response.json()
 }
+
+export const getCampaignAIReview = async (campaignId) => {
+  const response = await fetch(`${BASE_URL}/campaigns/${campaignId}/ai-review`)
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(errorText || "Error fetching AI review")
+  }
+
+  return response.json()
+}

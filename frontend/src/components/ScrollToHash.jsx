@@ -5,13 +5,21 @@ export default function ScrollToHash() {
   const location = useLocation()
 
   useEffect(() => {
-    if (location.hash) {
-      const element = document.getElementById(location.hash.replace("#", ""))
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" })
+    const scroll = () => {
+      if (location.hash) {
+        const id = location.hash.replace("#", "")
+        const element = document.getElementById(id)
+
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" })
+        }
       }
     }
-  }, [location])
+
+    // 🔥 Delay para asegurar render del DOM
+    setTimeout(scroll, 100)
+
+  }, [location.pathname, location.hash])
 
   return null
 }
